@@ -11,13 +11,16 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/express": "^5.0.6",
-    "@types/multer": "^2.0.0"
+    "@types/multer": "^2.0.0",
+    "@types/uuid": "^11.0.0"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
     "express": "^5.2.1",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "node-pty": "^1.0.0",
+    "uuid": "^13.0.0"
   }
 }
