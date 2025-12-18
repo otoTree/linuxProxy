@@ -18,11 +18,12 @@ else
     echo "REPORT_URL: $REPORT_URL"
 fi
 
-# Ensure dependencies are installed
-if [ ! -d "node_modules" ]; then
-    echo "Installing dependencies..."
-    bun install
+# Check if binary exists, if not build it
+if [ ! -f "./linuxProxy" ]; then
+    echo "Binary not found, building..."
+    bun run build
 fi
 
-# Run the application
-bun run start
+# Run the binary application
+echo "Starting binary application..."
+./linuxProxy
