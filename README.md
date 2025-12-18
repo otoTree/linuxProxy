@@ -1,12 +1,14 @@
 # LinuxProxy
 
-A high-performance web server template built with **Bun**, **Express**, and **TypeScript**. This project demonstrates how to set up a modern backend environment and compile it into a standalone binary for easy deployment.
+LinuxProxy is a lightweight, high-performance agent built with **Bun**, **Express**, and **TypeScript**. It allows for remote command execution and automated system status reporting. Designed to be compiled into a single standalone binary, it is easy to deploy on various Linux environments without complex dependency management.
 
-## Tech Stack
+## Features
 
-- **Runtime**: [Bun](https://bun.com) - A fast all-in-one JavaScript runtime.
-- **Framework**: [Express](https://expressjs.com) - Fast, unopinionated, minimalist web framework.
-- **Language**: [TypeScript](https://www.typescriptlang.org) - JavaScript with syntax for types.
+- **Remote Command Execution**: Securely execute shell commands via a REST API.
+- **System Monitoring**: Periodically reports system status (CPU, Memory, Load, Uptime, IP) to a configured endpoint.
+- **Secure**: specific API Token authentication required for command execution.
+- **Portable**: Compiles to a single binary executable using Bun's build capability.
+- **High Performance**: Leverages the speed of the Bun runtime.
 
 ## Prerequisites
 
@@ -14,13 +16,28 @@ A high-performance web server template built with **Bun**, **Express**, and **Ty
 
 ## Installation
 
-Install the dependencies:
+1. Clone the repository (if applicable) or download the source.
+2. Install dependencies:
 
 ```bash
 bun install
 ```
 
-## Development
+## Configuration
+
+The application is configured via environment variables. You can set these in a `.env` file or export them in your shell.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | The port the server listens on. | `3001` |
+| `API_TOKEN` | **Required**. The secret token for authenticating API requests. | `undefined` |
+| `REPORT_URL` | The URL where system reports are sent (POST request). | `undefined` |
+| `MS` | Interval in milliseconds for sending system reports. | `30000` (30s) |
+| `TO` | The recipient identifier sent in the report payload. | `admin@agentos.com` |
+
+## Usage
+
+### Development
 
 Run the server in development mode with hot reloading:
 
@@ -28,15 +45,9 @@ Run the server in development mode with hot reloading:
 bun dev
 ```
 
-The server will start at `http://localhost:3000`.
+### Building for Production
 
-## Build & Deployment
-
-This project supports compiling the TypeScript code into a single standalone binary executable, making deployment simple (no need to install Node.js/Bun or dependencies on the target machine, provided the architecture matches).
-
-### 1. Compile to Binary
-
-Run the following command to build the binary:
+Compile the TypeScript code into a single standalone binary executable:
 
 ```bash
 bun build --compile --minify --sourcemap ./src/index.ts --outfile server
@@ -44,28 +55,95 @@ bun build --compile --minify --sourcemap ./src/index.ts --outfile server
 
 This will generate a `server` file in the project root.
 
-### 2. Run the Binary
+### Running the Binary
 
-You can use the provided shell script to run the binary:
+You can run the generated binary directly. Make sure to set the environment variables:
+
+```bash
+export API_TOKEN="your-secret-token"
+export REPORT_URL="https://your-monitor.com/api/report"
+./server
+```
+
+## Helper Script
+
+The `start.sh` script is provided as a convenience wrapper to run the application from **source**. It sets default environment variables and installs dependencies if missing.
 
 ```bash
 ./start.sh
 ```
 
-Or run the binary directly:
+**Note**: You can modify `start.sh` to change default configurations or to run the compiled binary instead.
 
-```bash
-./server
-```
+## API Documentation
+
+### 1. Health Check
+
+- **URL**: `/`
+- **Method**: `GET`
+- **Response**: `Hello World from Bun + Express + TypeScript!`
+
+### 2. Execute Command
+
+Executes a shell command on the host machine.
+
+- **URL**: `/cmd`
+- **Method**: `POST`
+- **Headers**:
+    - `Authorization`: `Bearer <API_TOKEN>`
+    - `Content-Type`: `application/json`
+- **Body**:
+    ```json
+    {
+      "command": "ls -la"
+    }
+    ```
+- **Success Response (200)**:
+    ```json
+    {
+      "stdout": "...",
+      "stderr": ""
+    }
+    ```
+- **Error Response**:
+    - `401 Unauthorized`: Missing or invalid token.
+    - `400 Bad Request`: Missing command.
+    - `500 Internal Server Error`: Command execution failed.
+
+## System Reporting
+
+If `REPORT_URL` is set, the application starts a background task that sends system metrics every `MS` milliseconds.
+
+**Report Payload (Multipart/Form-Data):**
+
+- `from`: Local IP address
+- `to`: Configured `TO` address
+- `subject`: `System Status Report - <Hostname>`
+- `text`: JSON string containing:
+    - Hostname, Platform, Arch
+    - IP Address
+    - CPU Info & Load Average
+    - Memory Usage (Total, Free, Used)
+    - Uptime
+    - Timestamp
 
 ## Project Structure
 
 ```
 ├── src/
-│   └── index.ts      # Application entry point
-├── package.json      # Dependencies and scripts
-├── tsconfig.json     # TypeScript configuration
+│   ├── config/       # Configuration logic
+│   ├── controllers/  # Request handlers
+│   ├── middleware/   # Express middleware (Auth)
+│   ├── routes/       # API route definitions
+│   ├── tasks/        # Background tasks (System Report)
+│   ├── utils/        # Utility functions
+│   ├── app.ts        # Express app setup
+│   └── index.ts      # Entry point
 ├── server            # Compiled binary (generated)
-├── start.sh          # Helper script to run the binary
-└── README.md         # Project documentation
+├── start.sh          # Helper script
+└── README.md         # Documentation
 ```
+
+## License
+
+MIT
